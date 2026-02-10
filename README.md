@@ -1,6 +1,6 @@
 # Dbaek Shopping Mall
 
-이 프로젝트는 Next.js와 Prisma, SQLite를 사용하여 구축된 쇼핑몰 시스템입니다.
+이 프로젝트는 Next.js와 Prisma, SQLite를 사용하여 바이브코딩으로 구축된 쇼핑몰 시스템입니다.
 
 ## 📋 필수 조건
 - **Node.js**: v18.17.0 이상 (LTS 버전 권장)
