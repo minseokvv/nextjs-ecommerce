@@ -1,0 +1,98 @@
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { ShoppingBag } from "lucide-react";
+import Image from "next/image";
+
+// Revalidate every 60 seconds (ISR)
+export const revalidate = 60;
+
+async function getProducts() {
+    try {
+        const products = await db.product.findMany({
+            where: {
+                status: "SALE",
+                isDeleted: false,
+            },
+            take: 8,
+            orderBy: {
+                createdAt: "desc",
+            },
+            include: {
+                images: true,
+            },
+        });
+        return products;
+    } catch (e) {
+        console.error("Failed to fetch products", e);
+        return [];
+    }
+}
+
+export default async function Home() {
+    const products = await getProducts();
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
+                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+                    <div className="flex items-center gap-2">
+                        <ShoppingBag className="text-blue-600" />
+                        <span className="text-xl font-bold text-gray-900">Myoeemyo</span>
+                    </div>
+                    <nav className="flex gap-6 text-sm font-medium text-gray-600">
+                        <Link href="/" className="hover:text-blue-600">Home</Link>
+                        <Link href="/products" className="hover:text-blue-600">Best Sellers</Link>
+                        <Link href="/admin/login" className="text-gray-400 hover:text-gray-600">Admin</Link>
+                    </nav>
+                </div>
+            </header>
+
+            <main className="mx-auto max-w-7xl px-6 py-12">
+                <div className="mb-12 text-center">
+                    <h1 className="text-4xl font-bold text-gray-900">New Arrivals</h1>
+                    <p className="mt-4 text-gray-500">Discover the latest trends in our collection.</p>
+                </div>
+
+                {products.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center">
+                        <p className="text-lg text-gray-500">No products available yet.</p>
+                        <p className="text-sm text-gray-400">Visit the Admin panel to add some!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {products.map((product) => (
+                            <div key={product.id} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                                <div className="aspect-[4/3] w-full bg-gray-100 relative overflow-hidden">
+                                    {/* Placeholder for image if no URL */}
+                                    {product.imageUrl ? (
+                                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                            No Image
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-6">
+                                    <h3 className="text-lg font-bold text-gray-900">{product.name}</h3>
+                                    <p className="mt-2 text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <span className="text-xl font-bold text-blue-600">${product.price.toLocaleString()}</span>
+                                        <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800">
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </main>
+
+            <footer className="border-t border-gray-200 bg-white py-12">
+                <div className="mx-auto text-center text-sm text-gray-400">
+                    © 2024 Myoeemyo. All rights reserved.
+                </div>
+            </footer>
+        </div>
+    );
+}

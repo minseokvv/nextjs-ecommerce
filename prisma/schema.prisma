@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums removed for SQLite compatibility
+// UserRole: ADMIN, USER
+// OrderStatus: PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED
+// ProductStatus: SALE, SOLD_OUT, HIDDEN
+
+model User {
+  id        String    @id @default(uuid())
+  email     String?   @unique
+  username  String?   @unique
+  password  String
+  name      String?
+  phone     String?
+  zipcode   String?
+  address       String?
+  detailAddress String?
+  marketingConsent Boolean @default(false)
+  role      String    @default("USER") // Changed to String
+  grade     String    @default("BASIC") // BASIC, MEMBER, VIP
+  orders    Order[]
+  cart      Cart?
+  reviews   Review[]
+  inquiries Inquiry[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  addresses Address[]
+}
+
+model Address {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String   // 배송지 별칭 (예: 집, 회사)
+  recipient     String   // 받는 사람
+  phone         String   // 연락처
+  zipcode       String?
+  address       String
+  detailAddress String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  price       Int
+  stock       Int
+  imageUrl    String?     // Main image (kept for compatibility)
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  
+  images      ProductImage[] // Multi-image support
+
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  reviews     Review[]
+  inquiries   Inquiry[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Enhanced Management Fields
+  status           String   @default("SALE") // Changed to String
+  isDeleted        Boolean  @default(false)  // Soft Delete
+  supplier         String?  // Supplier Name
+
+  // Purchase Restrictions
+  purchaseLimit    String   @default("EVERYONE") // EVERYONE (모두), MEMBER (회원만)
+  
+  // Quantity Limits
+  minQuantity      Int      @default(1)
+  maxQuantity      Int?     
+  
+  // Points
+  useDefaultPoints Boolean  @default(true)
+  points           Int?     @default(0)
+
+  // Delivery Info (Custom)
+  shippingInfo     String?
+  returnInfo       String?
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model DeliveryTemplate {
+  id           String   @id @default(uuid())
+  name         String
+  shippingInfo String
+  returnInfo   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Banner {
+  id        String   @id @default(uuid())
+  title     String
+  imageUrl  String
+  link      String?
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  total         Int
+  status        String      @default("PENDING") // Changed to String
+  
+  // Delivery Info
+  trackingNumber String?
+  carrier        String?
+  depositorName  String?
+
+  // Recipient Snapshot & Memo
+  recipientName     String?
+  recipientPhone    String?
+  shippingAddress   String?
+  shippingZipcode   String?
+  memo              String?
+
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Int
+  option    String? // Product Option
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id            String  @id @default(uuid())
+  cartId        String
+  cart          Cart    @relation(fields: [cartId], references: [id])
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+  quantity      Int
+  productOption String? // Added for options in cart
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Inquiry {
+  id        String        @id @default(uuid())
+  title     String
+  content   String
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  productId String?
+  product   Product?      @relation(fields: [productId], references: [id])
+  status    String        @default("OPEN") // OPEN, ANSWERED, CLOSED
+  isSecret  Boolean       @default(false)
+  answer    String?
+  answeredAt DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Notice {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  isImportant Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
